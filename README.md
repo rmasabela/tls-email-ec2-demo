@@ -146,6 +146,115 @@
     ```
 
 ## SSL/TLS configuration for web server
+
+14. Install Let's Encrypt package
+
+    ```
+    sudo dnf install augeas-libs-y
+    sudo python3 -m venv /opt/certbot/
+    sudo /opt/certbot/bin/pip install --upgrade pip
+    sudo /opt/certbot/bin/pip install certbot certbot-nginx
+    sudo ln -s /opt/certbot/bin/certbot /usr/bin/certbot
+    ```
+
+15. Now, we must obtain our SSL/TLS certificate
+
+    ```
+    sudo certbot --nginx -d rmasabel.net -d www.rmasabel.net
+    ```
+
+    The system will ask for our email and a couple of confirmations (for terms of service and communications from the Electronic Frontier Foundation) and after some processing should show a message like this:
+
+    ```
+    ...
+
+    Deploying certificate
+    Successfully deployed certificate for rmasabel.net to /etc/nginx/conf.d/www.rmasabel.net.conf
+    Successfully deployed certificate for www.rmasabel.net to /etc/nginx/conf.d/www.rmasabel.net.conf
+    Congratulations! You have successfully enabled HTTPS on https://rmasabel.net and https://www.rmasabel.net
+    
+    NEXT STEPS:
+    ...
+    ```
+
+16. We may now review our updated NginX configuration file
+    
+    ```
+    sudo cat /etc/nginx/conf.d/www.rmasabel.net.conf
+    ```
+
+    We will appreciate the changes regarding the new SSL/TLS configuration
+    
+    ```
+    server {
+        root /var/www/html;
+        server_name rmasabel.net www.rmasabel.net;
+  
+        listen [::]:443 ssl ipv6only=on; # managed by Certbot
+        listen 443 ssl; # managed by Certbot
+        ssl_certificate /etc/letsencrypt/live/rmasabel.net/fullchain.pem; # managed by Certbot
+        ssl_certificate_key /etc/letsencrypt/live/rmasabel.net/privkey.pem; # managed by Certbot
+        include /etc/letsencrypt/options-ssl-nginx.conf; # managed by Certbot
+        ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem; # managed by Certbot
+
+    }
+    server {
+        if ($host = www.rmasabel.net) {
+            return 301 https://$host$request_uri;
+        } # managed by Certbot
+
+
+        if ($host = rmasabel.net) {
+            return 301 https://$host$request_uri;
+        } # managed by Certbot
+
+
+        listen 80 default_server;
+        listen [::]:80 default_server;
+        server_name rmasabel.net www.rmasabel.net;
+        return 404; # managed by Certbot
+    ```
+
+17. Try again our NginX home page through HTTP using our domain name via curl (**remember to update the domain name**)
+
+    ```
+    curl www.rmasabel.net
+    ```
+
+    The web server will generate a response page for HTTP 301 code.
+
+    ```
+    <html>
+    <head><title>301 Moved Permanently</title></head>
+    <body>
+    <center><h1>301 Moved Permanently</h1></center>
+    <hr><center>nginx/1.24.0</center>
+    </body>
+    </html>
+    ```
+
+    If we try our default subdomain (**remember to update the domain name again**), it should also show as that page
+
+    ```
+    curl rmasabel.net
+    ```
+
+18. But if we try any of our subdomains (either the default one or the www one) using our web browser, it will redirect it to the HTTPS version of our site (even if we explecitly use the **http://** prefix)
+
+    ![My web site served using HTTPS](web-browser01.png)
+
+    I have updated the default homepage, so it should show you the default NginX home page
+
+    ![Your web site served using HTTPS](web-browser01nginx.png)
+
+19. In fact, we might click the lock icon to the left of our web site address and we will be able to review the security details
+
+    ![Our web site served using HTTPS](web-browser02.png)
+
+    An when clicking the first element (the one that states "The connection is secure"), we will get an additional explanation of why it is secure.
+
+    ![Our web site served using HTTPS](web-browser03.png)
+
 ## SMTP server configuration
 ## IMAP server configuration
 ## Certificate auto-renewal
